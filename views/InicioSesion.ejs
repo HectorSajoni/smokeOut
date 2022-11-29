@@ -8,22 +8,27 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-Zenh87qX5JnK2Jl0vWa8Ck2rdkQ2Bzep5IDxbcnCeuOxjzrPF/et3URy9Bv1WTRi" crossorigin="anonymous">
     <link rel="stylesheet" href="CSS/InicioSesion.css">
     <link rel="icon" href="Imagenes/WhatsApp_Image_2022-11-20_at_4.22.53_AM-removebg-preview.png">
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
 <body>
-    <div  align="center">
+    <div id="divForm" align="center">
         <img style="transform: x(-50%) y(-30%);" src="Imagenes/SmokeFinal.png" class="img" width="700">
 
         <section class="form-register2" id="formulario">
-        <form action="ingresar" method="post" >
-            <input type="text" name="usuarioIn" class="form-control" placeholder="Usuario:" required><br><br>
-            <input type="password" class="form-control" name="passIn" placeholder="Contraseña:" required><br><br>
-            <!-- <input type="button" class="orange-500" value="Ingresar" onclick="inicio.html"><br><br>-->
+        <form action="ingresar" method="post" id="ingresarForm">
+            <input type="text" id="usuarioIn" class="form-control" placeholder="Usuario:" required><br><br>
+            <input type="password" class="form-control" id="passIn" placeholder="Contraseña:" required><br><br>
+            
+            <div class="g-recaptcha" data-sitekey="6LcpOC4jAAAAAF39W9i141rXwx9US5tr_wA0oFJi"></div>
+            <br>
+
             <center><button type="submit" class="orange-500">Iniciar Sesión</button></center><br>
         </form>
-            <center><button type="button" class="orange-500" data-bs-toggle="modal" data-bs-target="#exampleModal">
-                Si no tienes una cuenta, Regístrate Aqui.
-                </button></center>
-        
+        <center>
+            <button type="button" class="orange-500" data-bs-toggle="modal" data-bs-target="#exampleModal">
+            Si no tienes una cuenta, Regístrate Aqui.
+            </button>
+        </center>
         <br>
     </div>
 </section>
@@ -44,7 +49,7 @@
                         <input type="text" name="usuario" placeholder="Nombre de Usuario:" class="form-control" required><br>
                         <input type="password" name="pass" placeholder="Define tu contraseña:" class="form-control" required><br>
                         <label for="nacimiento">Fecha de nacimiento:</label><br>
-                        <input type="date" name="nacimiento" placeholder="fecha de nacimiento" class="form-control" required><br>
+                        <input type="date" name="nacimiento" placeholder="fecha de nacimiento" class="form-control" min="1920-01-01" max="2011-01-01" required><br>
                         &nbsp;&nbsp;<label>Sexo:</label><br>
                         <div align="center">
                             <label for="input">Hombre</label><input type="radio" name="sexo" value="1" required>
@@ -112,5 +117,19 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-OERcA2EqjJCMA+/3y+gxIOqMEjwtxJY7qPCqsdltbNJuaOe923+mo//f6V8Qbsw3" crossorigin="anonymous"></script>
 <script src="validacion.js"></script>
+<script>console.log(document.getElementById("ingresarForm"))
+    //Ingresar
+    document.getElementById("ingresarForm").onsubmit = function(e){
+        e.preventDefault()
+
+        //Get the captcha response
+        var formData = new FormData(document.getElementById("ingresarForm"))
+        var captchaResponse = formData.get("g-recaptcha-response")
+        //var user = formData.get("usuarioIn")
+        //var pass = formData.get("passIn")
+        fetch("/ingresar/" + encodeURI(document.querySelector('#usuarioIn').value) +"/"+ encodeURI(document.querySelector('#passIn').value) +"/"+ encodeURI(captchaResponse), {method: "POST"})
+        .then(()=>location.reload())
+    }
+</script>
 </body>
 </html>

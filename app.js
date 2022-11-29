@@ -4,6 +4,7 @@ const session = require('express-session')
 const mysql = require('mysql2')
 var bodyParser = require('body-parser')
 const path = require('path')
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
 var app = express()
 
@@ -15,7 +16,7 @@ const PORT = process.env.PORT || 3000
 const DB_HOST = process.env.DB_HOST || 'localhost'
 const DB_USER = process.env.DB_USER || 'root'
 const DB_PASSWORD = process.env.DB_PASSWORD || 'n0m3l0'
-const DB_NAME = process.env.DB_NAME || 'biblio'
+const DB_NAME = process.env.DB_NAME || 'smokeout'
 const DB_PORT = process.env.DB_PORT || 3306
 
 var con = mysql.createConnection(
@@ -53,20 +54,33 @@ app.listen(PORT,()=>
 
 //Inserciones post-----------------------------------------------------------------------------
 
-app.post('/ingresar',(req,res)=>
+app.post('/ingresar/:user/:pass/:captcharesponse', async (req,res)=>
 {
     us = req.body.usuarioIn
     req.session.usuario = us
-
-    let nombre = req.body.usuarioIn
-    let pass = req.body.passIn
-
-    con.query('select idusuario from usuario where persona_idpersona="'+nombre+'" and pass="'+pass+'"',(err,respuesta,fields)=>
-    {
-        if(err) return console.log(err)
-        if(respuesta.length == 0) return res.redirect('/')
-        return res.redirect('/inicio')
+    let nombre = req.params.user
+    let pass = req.params.pass
+    req.session.usuario = nombre
+    let captchaVerified = await fetch(`https://www.google.com/recaptcha/api/siteverify?secret=6LcpOC4jAAAAACoolrw6l2xLFHDk6cQM4-SdAAcP&response=${req.params.captcharesponse}`, {
+        method: "POST"
     })
+    .then(algo => algo.json())
+    console.log(captchaVerified.success)
+    if(captchaVerified.success === true)
+    {
+        con.query('select idusuario from usuario where persona_idpersona="'+nombre+'" and pass="'+pass+'"',(err,respuesta,fields)=>
+        {
+            console.log(respuesta.length)
+            if(err) return console.log(err)
+            if(respuesta.length == 0) return res.redirect('/')
+            return res.redirect('/inicio')
+            
+        })
+    } else
+    {
+        return res.redirect('/')
+    }
+    
 })
 
 
@@ -81,56 +95,47 @@ app.post('/registrar', (req,res)=>
     let cigDiarios = req.body.cigDiarios
     let horaCig = req.body.horaCig
 
-    console.log(user)
-    console.log(pass)
-    console.log(apellido)
-    console.log(nombre)
-    console.log(nacimiento)
-    console.log(sexo)
-    let continuar = false
+    if(!validarRegistro(user, pass, apellido, nombre, nacimiento, sexo, cigDiarios, horaCig)) return res.redirect('/')
 
     con.query('select * from usuario where persona_idpersona="'+user+'"', (err,respuesta,fields)=>
     {
-        if(err)return console.log("Error",err)
+        if(err) return console.log("Error",err)
         
         if(respuesta.length != 0)
         {
-            continuar == false
             return res.send('<h1>nombre: El nombre de usuario ya existe, tienes que usar otro amigo</h1>')
         }
-        continuar=true
 
-        if(continuar)
+        con.query('insert into persona values("'+user+'", "'+nombre+'", "'+apellido+'", "'+nacimiento+'", '+sexo+')',(err,respuesta,fields)=>
         {
-            con.query('insert into persona values("'+user+'", "'+nombre+'", "'+apellido+'", "'+nacimiento+'", '+sexo+')',(err,respuesta,fields)=>
+            if(err)
+            {
+                console.log(err)
+                return res.redirect('/')
+            }
+            console.log("se guardó la persona")
+
+            con.query('insert into usuario(persona_idpersona, pass) values("'+user+'","'+pass+'")', (err,respuesta,fields)=>
             {
                 if(err)
                 {
-                    return console.log(err)
+                    console.log(err)
+                    return res.redirect('/')
                 }
-                console.log("se guardó la persona")
-
-                con.query('insert into usuario(persona_idpersona, pass) values("'+user+'","'+pass+'")', (err,respuesta,fields)=>
+                us = req.body.usuario
+                req.session.usuario = us
+                console.log("se guardó el usuario")
+                con.query('insert into habitos_iniciales(hora_primer_cig, cig_diarios, persona_idpersona) values("'+horaCig+'",'+cigDiarios+',"'+user+'")', (err,respuesta,fields)=>
                 {
                     if(err)
                     {
                         return console.log(err)
                     }
-                    us = req.body.usuario
-                    req.session.usuario = us
-                    console.log("se guardó el usuario")
-                    con.query('insert into habitos_iniciales(hora_primer_cig, cig_diarios, persona_idpersona) values("'+horaCig+'",'+cigDiarios+',"'+user+'")', (err,respuesta,fields)=>
-                    {
-                        if(err)
-                        {
-                            return console.log(err)
-                        }
-                        console.log("se guardaron los hábitos inciales del usuario")
-                        return res.redirect('/inicio')
-                    })
+                    console.log("se guardaron los hábitos inciales del usuario")
+                    return res.redirect('/inicio')
                 })
             })
-        }
+        })
     })
 })
 
@@ -184,10 +189,8 @@ app.post('/registrarCigarro', (req,res)=>
                             console.log("cigarro registrado")
                             return res.redirect('/inicio')
                         })
-                    }
-                    
+                    }  
                 })
-                
             })
         }
     })
@@ -223,12 +226,16 @@ app.post('/registrarObjetivo',(req,res)=>
 //Consultas get--------------------------------------------------------------------------------
 
 app.get('/', function(req, res) {
-    res.render('InicioSesion')
+    if(req.session.usuario)
+    {
+        return res.redirect('inicio')
+    }
+    return res.render('InicioSesion')
 })
 
 
 app.get('/inicio', (req, res)=>
-{
+{ console.log("entrando a get inicio")
     if(req.session.usuario)
     {
         usuario = req.session.usuario
@@ -259,11 +266,11 @@ app.get('/inicio', (req, res)=>
                     dato = "horas"   
                 }
                 texto = "LLevas "+tiempo+" "+ dato+" sin fumar"
-                return res.render('inicio', {usuario, texto})
+                return renderIn(res, usuario, texto)//res.render('Inicio', {usuario, texto})
             }else
             {
                 texto = "No has registrado el consumno de ningún cigarro"
-                return res.render('inicio', {usuario, texto})
+                return renderIn(res, usuario, texto)//res.render('Inicio', {usuario, texto})
             }
         })
     }else
@@ -271,7 +278,11 @@ app.get('/inicio', (req, res)=>
         return res.redirect('/')
     }
 })
-
+function renderIn(res, usuario, texto)
+{
+    console.log("debería renderizar")
+    return res.render('Inicio', {usuario, texto})
+}
 
 app.get('/objetivos', (req, res)=>
 {
@@ -471,85 +482,87 @@ function getDineroGastado(arreglo)
     return dinero
 }
 
-/*
-app.get('/metricas', (req, res)=>
+regEmail = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3,4})+$/
+regNombre = /^[a-zA-Z\s]{3,50}/
+regFecha = /^\d{4}-\d{2}-\d{2}$/
+regUsuario = /^[a-zA-Z0-9\_\-]{4,16}$/
+regNombre= /^[a-zA-ZÀ-ÿ\s]{1,40}$/
+regPass = /^.{5,12}$/ 
+regEtiqueta = /^[a-zA-ZÀ-ÿ\s]{1,50}$/
+regCantidad = /\d/
+
+var checkOK = "QWERTYUIOPASDFGHJKLZXCVBNMÑÁÉÍÓÚqwertyuiopasdfghjklñzxcvbnmáéíóú"
+
+function validarRegistro(usuario, pass, apellido, nombre, nacimiento, sexo, cigDiarios, horaCig)
 {
-    if(req.session.usuario)
+    if(nombre.length < 3) return false
+
+    for(var i = 0; i < nombre.length; i++)
     {
-        let precioCigarros = 7
-        let fActualUTC = Date.now()
-        let hora = new Date(fActualUTC).getHours()
-        let minuto = new Date(fActualUTC).getMinutes()
-        let hActualUTC = hora + ":" +minuto
-        con.query('select * from dia where persona_idpersona="'+req.session.usuario+'"',(err,respuesta,field)=>
+        var ch = nombre.charAt(i)
+        for(var j = 0; j < checkOK.length; j++)
         {
-            con.query('select * from habitos_iniciales where persona_idpersona="'+req.session.usuario+'"',(err,respuestas,fields)=>
-            {
-                let dineroTeorico
-                let dineroGastado
-                let dineroAhorrado
-                if(respuesta.length != 0)
-                {
-                    //Dias sin fumar---------------------------------------------------------
-                    let fechaCig = respuesta[respuesta.length - 1].fecha.toString()
-                    let horaCig = respuesta[respuesta.length - 1].ultimo_cigarro.toString()
-                    let f1 = Date.parse(fechaCig)
-                    let dias = restaFechas(f1, fActualUTC)
-                    var minutos = restaHoras(horaCig, hActualUTC)
-                    
-                    //Gráfico----------------------------------------------------------------
-                    let primerDia = respuesta[0].fecha.toString()
-                    let d1 =Date.parse(primerDia)
-                    let diasTotales = restaFechas(d1, fActualUTC)
-                    let listaDias = [respuesta[0].fecha.getFullYear()+"-"+(parseInt(respuesta[0].fecha.getMonth())+1)+"-"+respuesta[0].fecha.getDate()]
-                    let listaCigarros = [respuesta[0].cig_consumidos]
-
-                    dineroTeorico = respuestas[0].cig_diarios * (diasTotales + 2) * precioCigarros
-                    dineroGastado = getDineroGastado(respuesta)
-                    dineroAhorrado = dineroTeorico - dineroGastado
-
-                    let i = 1
-                    let j = 1
-                    while(i<diasTotales + 1)
-                    {
-                        fechaDelDia = Date.parse(respuesta[j].fecha.toString())
-                        if(restaFechas(fechaDelDia, fActualUTC) == diasTotales - i)
-                        {
-                            listaDias.push(respuesta[j].fecha.getFullYear()+"-"+(parseInt(respuesta[0].fecha.getMonth())+1)+"-"+respuesta[j].fecha.getDate())
-                            listaCigarros.push(respuesta[j].cig_consumidos)
-                            if(j < respuesta.length - 1) j+=1
-                        }else
-                        {
-                            date = new Date(d1 + 1000*60*60*24*i)
-                            listaDias.push(date.getFullYear()+"-"+(parseInt(date.getMonth())+1)+"-"+date.getDate())
-                            listaCigarros.push(0)
-                        }
-                        i+=1
-                    }
-
-                    if(dias != 0)
-                    {
-                        tiempo = dias
-                        dato = "dias"
-                    }else
-                    {
-                        tiempo = minutos
-                        dato = "horas"   
-                    }
-                    texto = "LLevas "+tiempo+" "+ dato+" sin fumar"
-                    return res.render('metricas', {texto, listaDias, listaCigarros, dineroAhorrado})
-                }else
-                {
-                    texto = "No has registrado el consumno de ningún cigarro"
-                    listaDias = []
-                    listaCigarros = []
-                    return res.render('metricas', {texto, listaDias, listaCigarros, dineroAhorrado})
-                }
-            })
-        }) 
-    }else
-    {
-        return res.redirect('/')
+            if(ch == checkOK.charAt(j) || ch == ' ')
+            break
+        }
+        if(j == checkOK.length) return false
     }
-})
-*/
+    
+    if(apellido.length < 5) return false
+
+    for(var i = 0; i < apellido.length; i++)
+    {
+        var ch = apellido.charAt(i)
+        for(var j = 0; j < checkOK.length; j++)
+        {
+            if(ch == checkOK.charAt(j)) break
+        }
+        if(j == checkOK.length) return false
+    }
+    
+    if(pass.length < 5) return false
+
+    for(var i = 0; i < pass.length; i++)
+    {
+        var ch = pass.charAt(i)
+        if(ch == '\'') return false
+    }
+
+    if(!regFecha.test(nacimiento)) return false
+
+    if(!regPass.test(pass)) return false
+
+    if(!regUsuario.test(usuario)) return false
+
+    try
+    {
+        if(!regFecha.test(nacimiento)
+            || Date.parse(nacimiento) > Date.parse('2011-01-01')
+            || Date.parse(nacimiento) < Date.parse('1920-01-01'))
+        {
+            return false
+        }
+    }catch(e)
+    {
+        return false
+    }
+    
+    if(!regHora.test(horaCig)) return false
+    
+    try
+    {
+        let arr = horaCig.split(':')
+        if(arr.length != 2) return false
+
+        if(parseInt(arr[0]) < 0 || parseInt(arr[0]) > 23
+            || parseInt(arr[0]) < 0 || parseInt(arr[0]) > 60)
+        {
+            return false
+        }
+
+    }catch(e)
+    {
+        return false
+    }
+    if(sexo != 0 && sexo != 1)return false
+}

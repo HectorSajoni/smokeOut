@@ -1,0 +1,42 @@
+
+.table{
+    border: 3px;
+    width: 70%;
+    margin-bottom: 0rem;
+    text-align: center;
+    color: #000000;
+    border-width: 3px;
+    border-style:solid;
+    margin-top: 0rem;
+}
+
+table td, table tr{
+    border-width: 3px;
+    border-style: solid;
+    border-color: #942e3f;
+}
+
+body{
+    background-color: #fdfdfd;
+    background-attachment: fixed; 
+    background-position: center center;
+    background-size: 100%;
+    padding-bottom: 200px;
+    margin: 0px;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    font: bold sans-serif;
+    font-weight: 500;
+    overflow-x: hidden;
+    position: relative;
+}
+
+.texto{
+    text-align: center;
+    margin-top: 3rem;
+    margin-bottom: 3rem;
+    margin-right: 12rem;
+    margin-left: 12rem;
+    font-size: large;
+}

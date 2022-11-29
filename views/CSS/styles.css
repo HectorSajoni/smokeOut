@@ -30,6 +30,7 @@ header{
     background-position: center;
     background-size: cover;
     z-index: 2;
+    display: flex;
 }
 
 h1
@@ -40,14 +41,19 @@ h1
 h3
 {
     font-family: Geneva, Tahoma, sans-serif;
+    font-size: 3.5vh;
 }
 
-nav{
-    height: 100%;
-    width: 20%;
-    display:block;
-    justify-content: space-between;
+.nav-secundario{
+    margin-left: auto;
+    position: relative;
+    display: inline-block; 
+    min-width:auto;
+    align-content: space-around; 
+    vertical-align: top;
+    align-content: center;
     align-items: center;
+    padding-right: 5%;
 }
 
 .nav-men{
@@ -68,7 +74,6 @@ nav{
     margin: 50px 0;
     transition: all .5s;
     margin-right: 1cm;
-
 }
 
 .nav-menu li a{
@@ -93,12 +98,6 @@ nav{
     color: whitesmoke;
     font-size: 2.5vh;
     margin: 2em;
-}
-
-.logo_img{
-    width: 300px;
-    margin-left: 100px;
-    margin-top: -150px;
 }
 
 .botonEx{
@@ -134,8 +133,10 @@ nav{
     font-size: 70px;
     color: white;
     margin-left: 0;
-    max-width: max-content;
+    max-width: min-content;
+    padding-right: 15px;
     min-height: 100%;
+    display: inline-block;
 }
 
 .menu-item:hover{
@@ -166,10 +167,6 @@ h2{
     color: white;
     font-size: 3vh;
 
-}
-
-h3{
-    font-size: 3.5vh;
 }
 
 .table{

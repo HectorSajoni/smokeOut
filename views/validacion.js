@@ -1,12 +1,12 @@
 regEmail = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3,4})+$/
 regNombre = /^[a-zA-Z\s]{3,50}/
-regFecha = /\d{4}-\d{2}-\d{2}$/
+regFecha = /^\d{4}-\d{2}-\d{2}$/
 regUsuario = /^[a-zA-Z0-9\_\-]{4,16}$/
 regNombre= /^[a-zA-ZÀ-ÿ\s]{1,40}$/
 regPass = /^.{5,12}$/ 
 regEtiqueta = /^[a-zA-ZÀ-ÿ\s]{1,50}$/
 regCantidad = /\d/
-
+regHora = /^\d{2}:\d{2}$/
 
 
 form = document.getElementById('registro')
@@ -56,20 +56,18 @@ function validarRegistro(event)
         for(var j = 0; j < checkOK.length; j++)
         {
             if(ch == checkOK.charAt(j))
-            break
+            {
+                break
+            }
         }
         if(j == checkOK.length){
             alert("Escriba unicamente letras en el campo de appellido")
             form.apellido.focus()
             event.preventDefault()
             return false
-            
         }
-        break
     }
     
-    
-
     if(form.pass.value.length < 5)
     {
         alert("La contraseña debe tener lo menos 5 caracteres")
@@ -88,10 +86,8 @@ function validarRegistro(event)
             event.preventDefault()
             return false
         }
-        break
     }
 
-    
     if(!regFecha.test(form.nacimiento.value))
     {
         alert("La fecha no es válida")
@@ -116,7 +112,78 @@ function validarRegistro(event)
         return false
     }
 
+    try
+    {
+        if(!regFecha.test(form.nacimiento.value)
+            || Date.parse(form.nacimiento.value) > Date.parse('2011-01-01')
+            || Date.parse(form.nacimiento.value) < Date.parse('1920-01-01'))
+        {
+            alert("La fecha no es válida")
+            form.nacimiento.focus()
+            event.preventDefault()
+            return false
+        }
+    }catch(e)
+    {
+        alert("La fecha no es válida")
+        form.nacimiento.focus()
+        event.preventDefault()
+        return false
+    }
+    
+    if(!regHora.test(form.horaCig.value))
+    {
+        alert("La fecha no es válida")
+        form.horaCig.focus()
+        event.preventDefault()
+        return false
+    }
+    try
+    {
+        let arr = form.horaCig.value.split(':')
+        if(arr.length != 2)
+        {
+            alert("La hora no es válida")
+            form.horaCig.focus()
+            event.preventDefault()
+            return false
+        }
+        if(parseInt(arr[0]) < 0 || parseInt(arr[0]) > 23
+            || parseInt(arr[0]) < 0 || parseInt(arr[0]) > 60)
+        {
+            alert("La hora no es válida")
+            form.horaCig.focus()
+            event.preventDefault()
+            return false
+        }
+
+    }catch(e)
+    {
+        alert("La hora no es válida")
+        form.horaCig.focus()
+        event.preventDefault()
+        return false
+    }
+
+    if(form.sexo.value != 0 && form.sexo.value != 1)
+    {
+        alert("El sexo no es válido")
+        form.sexo.focus()
+        event.preventDefault()
+        return false
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
 
 function  validarObjetivos(event){
 
@@ -143,6 +210,7 @@ function  validarObjetivos(event){
         event.preventDefault()
         return false
     }
+
     let valido = false
     for(var i = 0; i < 4; i++)
     {
@@ -154,6 +222,7 @@ function  validarObjetivos(event){
             break
         }
     }
+
     if(!valido)
     {
         alert("Método inválido")
@@ -162,7 +231,6 @@ function  validarObjetivos(event){
         return false
     }
 
-
     if(!regCantidad.test(formulario.metodosp.value))
     {
         alert("Método Invalido")
@@ -170,5 +238,4 @@ function  validarObjetivos(event){
         event.preventDefault()
         return false
     }
-
 }
